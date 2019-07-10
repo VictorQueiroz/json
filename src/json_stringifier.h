@@ -7,13 +7,19 @@
 
 #include <cvector.h>
 
-CVECTOR_HEAD(json_characters_list, char*)
+CVECTOR_HEAD(json_characters_list, char)
 
 typedef struct _json_stringifier json_stringifier;
 
 struct _json_stringifier {
     json_characters_list* characters_list;
+    size_t output_string_length;
 };
+
+/**
+ * @return Return the stringified value
+ */
+char* json_stringifier_to_string(json_stringifier*);
 
 json_stringifier* json_stringifier_alloc();
 void json_stringifier_free(json_stringifier*);

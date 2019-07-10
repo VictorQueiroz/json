@@ -4,12 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-CVECTOR_NEW(json_characters_list, char*)
+CVECTOR_NEW(json_characters_list, char)
 
 void json_characters_list_free_items(json_characters_list* list) {
-    vector_foreach(list, i) {
-        free(vector_get(list, i));
-    }
 }
 
 json_stringifier* json_stringifier_alloc() {
@@ -23,12 +20,23 @@ void json_stringifier_free(json_stringifier* item) {
     free(item);
 }
 
-void json_stringifier_write(json_stringifier* s, char* ch) {
+void json_stringifier_write_with_options(json_stringifier* s, char* ch, enum JSONBoolean escape) {
     size_t length = strlen(ch);
-    char* copied = malloc(length + 1);
-    memcpy(copied, ch, length);
-    copied[length] = 0;
-    json_characters_list_add(s->characters_list, copied);
+    size_t i;
+    for(i = 0; i < length; i++) {
+        if(escape == JSONTrue) {
+            if(ch[i] == '"') {
+                json_characters_list_add(s->characters_list, '\\');
+                s->output_string_length++;
+            }
+        }
+        json_characters_list_add(s->characters_list, ch[i]);
+        s->output_string_length++;
+    }
+}
+
+void json_stringifier_write(json_stringifier* s, char* ch) {
+    json_stringifier_write_with_options(s, ch, JSONFalse);
 }
 
 void json_stringifier_stringify_array(json_stringifier* s, json_array* value) {
@@ -52,7 +60,7 @@ void json_stringifier_stringify_object(json_stringifier* s, json_object* object)
         json_object_value* item = vector_get(object->values, i);
         json_stringifier_write(s, "\"");
         json_stringifier_write(s, item->property);
-        json_stringifier_write(s, "\": ");
+        json_stringifier_write(s, "\":");
         json_stringifier_stringify(s, item->value);
         if((length - 1) != i) {
             json_stringifier_write(s, ",");
@@ -61,20 +69,30 @@ void json_stringifier_stringify_object(json_stringifier* s, json_object* object)
     json_stringifier_write(s, "}");
 }
 
+char* json_stringifier_to_string(json_stringifier* s) {
+    return s->characters_list->data;
+}
+
 void json_stringifier_stringify(json_stringifier* s, json_value* value) {
     switch(value->type) {
-        case JSON_VALUE_ARRAY:
+        case JSONValueArray:
             json_stringifier_stringify_array(s, value->json_array);
             break;
-        case JSON_VALUE_STRING:
+        case JSONValueUndefined:
+            json_stringifier_write(s, "undefined");
+            break;
+        case JSONValueNull:
+            json_stringifier_write(s, "null");
+            break;
+        case JSONValueString:
             json_stringifier_write(s, "\"");
-            json_stringifier_write(s, value->json_string);
+            json_stringifier_write_with_options(s, value->json_string, JSONTrue);
             json_stringifier_write(s, "\"");
             break;
-        case JSON_VALUE_OBJECT:
+        case JSONValueObject:
             json_stringifier_stringify_object(s, value->json_object);
             break;
-        case JSON_VALUE_NUMBER: {
+        case JSONValueNumber: {
             char output[JSON_MAX_NUMBER_LENGTH];
             int length = sprintf(output, "%.6f", value->json_number);
             char trimmed[length + 1];

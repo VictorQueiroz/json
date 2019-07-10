@@ -9,13 +9,28 @@ typedef struct _json_value json_value;
 #include <cvector.h>
 #include <stdlib.h>
 
-#define JSON_VALUE_OBJECT 1
-#define JSON_VALUE_ARRAY 2
-#define JSON_VALUE_NUMBER 3
-#define JSON_VALUE_STRING 4
+enum JSONResultCode {
+    JSONOk,
+    JSONUnknownError,
+    JSONMemoryAllocationError
+};
+
+enum JSONBoolean {
+    JSONFalse = 0,
+    JSONTrue = 1
+};
+
+enum JSONValue {
+    JSONValueObject = 1,
+    JSONValueArray,
+    JSONValueNumber,
+    JSONValueString,
+    JSONValueUndefined,
+    JSONValueNull
+};
 
 struct _json_value {
-    uint8_t type;
+    enum JSONValue type;
     json_object* json_object;
     double json_number;
     char* json_string;
@@ -23,6 +38,7 @@ struct _json_value {
 };
 
 json_value* json_value_alloc();
+json_value* json_undefined_alloc();
 void json_value_free(json_value*);
 
 #endif // JSON_VALUE_H_
